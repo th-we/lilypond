@@ -1179,7 +1179,7 @@ articulations_dict = {
     #"toe": "?",
     "turn": "turn",
     "tremolo": musicxml_tremolo_to_lily_event,
-    "trill-mark": "trill",
+    "trill-mark": lambda notations: None if notations.get_named_children ('wavy-line') else "trill",
     #"triple-tongue": "?",
     #"unstress": "?"
     "up-bow": "upbow",
@@ -1187,12 +1187,16 @@ articulations_dict = {
 }
 articulation_spanners = [ "wavy-line" ]
 
-def musicxml_articulation_to_lily_event (mxl_event):
+def musicxml_articulation_to_lily_event (mxl_event, parent_node):
     # wavy-line elements are treated as trill spanners, not as articulation ornaments
     if mxl_event.get_name () in articulation_spanners:
         return musicxml_spanner_to_lily_event (mxl_event)
 
     tmp_tp = articulations_dict.get (mxl_event.get_name ())
+    
+    if hasattr (tmp_tp, '__call__'):
+        tmp_tp = tmp_tp(parent_node)
+    
     if not tmp_tp:
         return
 
@@ -2351,7 +2355,7 @@ def musicxml_voice_to_lily_voice (voice):
 
             # accidental-marks are direct children of <notation>!
             for a in notations.get_named_children ('accidental-mark'):
-                ev = musicxml_articulation_to_lily_event (a)
+                ev = musicxml_articulation_to_lily_event (a, notations)
                 if ev:
                     ev_chord.append (ev)
 
@@ -2376,7 +2380,7 @@ def musicxml_voice_to_lily_voice (voice):
 
             for a in ornaments:
                 for ch in a.get_all_children ():
-                    ev = musicxml_articulation_to_lily_event (ch)
+                    ev = musicxml_articulation_to_lily_event (ch, a)
                     if ev:
                         ev_chord.append (ev)
 
